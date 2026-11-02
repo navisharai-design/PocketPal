@@ -1188,6 +1188,14 @@ body{background:#E9E9E6}
  .scr .sheet{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
 }
 @media (display-mode:standalone){ html,body{background:#0A0A0B} }
+/* payment app chips: clear on/off */
+.scr .chip-lg{position:relative;transition:opacity .15s,filter .15s,box-shadow .15s,transform .15s}
+.scr .chip-lg:not(.on){opacity:.42;filter:grayscale(1);box-shadow:none}
+.scr .chip-lg.on{opacity:1;filter:none;box-shadow:0 0 0 3px var(--pu),0 8px 22px -6px rgba(139,61,255,.75)!important;transform:translateY(-1px)}
+.scr .chip-lg.on::after{content:"";position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--pu) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat;box-shadow:0 0 0 2px #0A0A0B}
+.scr .chip-lg:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.scr .chip-lg{transition:none}.scr .chip-lg.on{transform:none}}
+.scr .ob>p.mut+.chips{margin-top:18px}
 </style>
 </head>
 <body>
