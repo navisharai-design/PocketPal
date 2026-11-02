@@ -1179,7 +1179,6 @@ body{background:#E9E9E6}
 .scr .sr>span{flex:1;min-width:0}.scr .sr small{display:block;color:var(--tx2)}.scr .sr b{display:block;font-size:14px;font-weight:600;color:#fff;overflow-wrap:anywhere}
 .scr .sr .lnk{font-size:13px;text-decoration:none}
 .scr .tipc b{display:block;font-size:14px;color:#fff}.scr .tipc p{font-size:12.5px;margin-top:3px}
-.scr .ob>*{flex-shrink:0}
 
 @media (max-width:720px){
  .scr{padding-top:env(safe-area-inset-top,0px)}
@@ -1236,7 +1235,7 @@ let S, ui, P=30;
 function blank(){ return {v:1,setup:false,name:'',who:'',income:'',fixed:{rent:'',bills:'',subs:''},monthly:'',cycle:{type:'pay',day:1},nextCycle:null,apps:['GPay','PhonePe','Cash'],goal:0,goalAuto:false,prefs:{lim:true,half:true,fast:true,goal:true},streak:0,inbox:[],unread:0,pno:0,past:[],nextP:0,ts:0,
   start:today(),P:30,budget:'',budStart:0,bufStart:0,budEv:[],tx:[],moved:[],flags:{},goalHit:false,txId:0,ended:false,
   step:'welcome',day:1,capD:0,poolD:0,bufD:0,log:[],notif:null,toast:null}; }
-function blankUi(){ return {slide:0,app:'GPay',tab:'today',sheet:null,hist:7,cat:'Food',amt:'',note:'',dsel:0,edit:'',sal:'',nm:'',gl:'',mv:'',mvTo:'',trk:'spend',cf:null,eamt:'',ecat:'',edate:'',restore:'',ssf:'',budSet:false,fromSum:false,cyc:null,fx:null,num:'',numv:''}; }
+function blankUi(){ return {slide:0,app:'GPay',tab:'today',sheet:null,hist:7,cat:'Food',amt:'',note:'',dsel:0,edit:'',sal:'',nm:'',gl:'',mv:'',mvTo:'',trk:'spend',cf:null,eamt:'',ecat:'',edate:'',restore:'',ssf:'',fromSum:false,cyc:null,fx:null,num:'',numv:''}; }
 S=blank(); ui=blankUi();
 let PCACHE={}; /* period docs, keyed p<n> */
 
@@ -1371,7 +1370,7 @@ function vIntro(){ const i=ui.slide, sl=SLIDES[i], last=i===SLIDES.length-1;
 const WHO=[['employee','Employee','Salaried, with a monthly pay cheque'],['student','Student','Pocket money or an allowance'],['other','Other','Freelance, gig work or something else']];
 const WHOI={employee:'<rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18"/>',student:'<path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11v4.5c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3V11M21.5 9v5"/>',other:'<path d="M12 3l2.3 5 5.2.6-3.9 3.6 1.1 5.3L12 15l-4.7 2.5 1.1-5.3L4.5 8.6 9.7 8z"/>'};
 /* setup flow: who → name → income → fixed costs → cycle → budget → goal → apps → summary */
-const OB=['who','qn','qi','qf','qc','qg','qa','qs'];
+const OB=['who','qn','qi','qf','qc','q1','qg','qa','qs'];
 function dots(step){ const k=OB.indexOf(step)+1; return `<div class="dots">${OB.map((_,j)=>`<i class="${j<k?'on':''}"></i>`).join('')}</div><span class="eb">${step==='qs'?'Last step':'Step '+k+' of '+(OB.length-1)}</span>`; }
 const nextOf=step=>ui.fromSum?'qs':OB[OB.indexOf(step)+1];
 const backBtn=step=>{ const i=OB.indexOf(step); return i>0?`<button class="in-back" data-go="${OB[i-1]}" aria-label="Back">←</button>`:''; };
@@ -1424,8 +1423,14 @@ function budErr(){ const m=+S.monthly; if(S.monthly==='') return ['','']; const 
   if(ui.ssf!==''&&+ui.ssf>m) return ['err','You’ve already spent more than this budget. Raise the budget or check the amount spent.'];
   if(S.cycle.type==='pay'&&inc&&m>afterFixed()) return ['warn',`That’s more than the ${inr(afterFixed())} left after fixed costs. You’d be dipping into savings.`];
   return ['',''] }
-const ensureBud=()=>{ if(!ui.budSet) S.monthly=suggested()||S.monthly; };
-function vQg(){ ensureBud(); const g=S.goal, b=firstBudget(); const extra=S.cycle.type==='pay'&&+S.income?afterFixed()-(+S.monthly):0; return `<div class="view full ob">${dots('qg')}<h2>Set a saving goal</h2><p class="mut">Whatever you don’t spend each day goes into your saving buffer. How much would you like it to reach this period?</p>
+function vQ1(){ const v=S.monthly, cb=cycleFrom(today()), mid=cb.P<cb.len, sg=suggested(), [ek,et]=budErr(); const fb=firstBudget(); const per=S.cycle.type==='pay'?'month':cycleName().toLowerCase().replace('every ','').replace('week','week');
+  return `<div class="view full ob">${dots('q1')}<h2>How much do you want to spend each ${S.cycle.type==='pay'?'month':'period'}?</h2><p class="mut">Day-to-day spending only: food, travel, shopping and outings. Fixed costs are already set aside.</p>
+  <label class="fld"><span>₹</span><input id="iBud" inputmode="numeric" placeholder="${(sg||12000).toLocaleString('en-IN')}" value="${v}" aria-describedby="budErr"></label>
+  ${sg?`<div class="chips"><button class="chip ${+v===sg?'on':''}" data-bud="${sg}">Suggested · ${inr(sg)}</button>${[0.6,0.9].map(f=>r500(afterFixed()*f)).filter(x=>x>0&&x!==sg).map(x=>`<button class="chip ${+v===x?'on':''}" data-bud="${x}">${inr(x)}</button>`).join('')}</div><p class="mut hint">Suggested keeps a quarter of what’s left after fixed costs for savings.</p>`:''}
+  ${mid&&+v>0?`<span class="lbl">Already spent since ${fmtD(cb.prev)}</span><label class="fx-i wide"><i>₹</i><input id="iSsf" inputmode="numeric" placeholder="Not sure" value="${ui.ssf}" aria-label="Already spent this month"></label><p class="mut hint">${ui.ssf===''?`Leave blank and we’ll count ${cb.len-cb.P} day${cb.len-cb.P===1?'':'s'} as already gone.`:'Taken off this month’s budget.'}</p>`:''}
+  <p class="sal-n ${ek}" id="budErr">${et||(+v>0?(mid?`First period: <b>${inr(fb)}</b> for ${cb.P} day${cb.P===1?'':'s'}, about ${inr(fb/cb.P)} a day. Then ${inr(+v)} each month.`:`That’s about ${inr(+v/cb.len)} a day.`):'')}</p>
+  ${obNav('q1',+v>0&&ek!=='err')}</div>`; }
+function vQg(){ const g=S.goal, b=firstBudget(); const extra=S.cycle.type==='pay'&&+S.income?afterFixed()-(+S.monthly):0; return `<div class="view full ob">${dots('qg')}<h2>Set a saving goal</h2><p class="mut">Whatever you don’t spend each day goes into your saving buffer. How much would you like it to reach this period?</p>
   <label class="fld"><span>₹</span><input id="iGoal0" inputmode="numeric" placeholder="${r500(b*0.2)||1000}" value="${g||''}"></label>
   <div class="chips">${[[0.1,'10%'],[0.2,'20%'],[0.3,'30%']].map(([f,l])=>{const x=Math.max(100,Math.round(b*f/100)*100);return `<button class="chip ${+g===x?'on':''}" data-gl0="${x}">${l} · ${inr(x)}</button>`;}).join('')}</div>
   ${+g>b?'<p class="sal-n err">A goal bigger than your budget can’t be reached by saving from it.</p>':''}
@@ -1434,13 +1439,11 @@ function vQg(){ ensureBud(); const g=S.goal, b=firstBudget(); const extra=S.cycl
 function vQa(){ return `<div class="view full ob">${dots('qa')}<h2>How do you usually pay?</h2><p class="mut">Pick all that apply. They show up when you log a payment, first one selected.</p>
   <div class="chips">${APPS.map(x=>`<button class="chip chip-lg ${S.apps.includes(x)?'on':''}" data-papp="${x}" aria-label="${x}">${appMark(x)}${x==='Paytm'?'':x}</button>`).join('')}</div>
   <p class="sal-n ${S.apps.length?'':'err'}">${S.apps.length?S.apps.length+' selected':'Pick at least one.'}</p>${obNav('qa',S.apps.length>0)}</div>`; }
-function vQs(){ ensureBud(); const cb=cycleFrom(today()), fb=firstBudget(), [ek,et]=budErr(); const row=(l,v,go)=>`<div class="sr"><span><small>${l}</small><b>${v}</b></span><button class="lnk" data-edit="${go}">Edit</button></div>`;
+function vQs(){ const cb=cycleFrom(today()), fb=firstBudget(); const row=(l,v,go)=>`<div class="sr"><span><small>${l}</small><b>${v}</b></span><button class="lnk" data-edit="${go}">Edit</button></div>`;
   return `<div class="view full ob">${dots('qs')}<h2>Check your details</h2><p class="mut">You can change any of these later in Settings.</p>
-  <div class="card srw">${row('Name',esc(S.name),'qn')}${row('You are',(WHO.find(w=>w[0]===S.who)||['',''])[1],'who')}${row(S.who==='student'?'Monthly money':'Monthly income',inr(S.income),'qi')}${row('Fixed costs',inr(fixedTotal())+' a month','qf')}${row('Resets',cycleName(),'qc')}${row('Saving goal',S.goal?inr(S.goal):'None','qg')}${row('Paid with',S.apps.join(', '),'qa')}</div>
-  <span class="lbl">Spending budget ${S.cycle.type==='pay'?'each month':'each period'}</span><label class="fx-i wide"><i>₹</i><input id="iBudS" inputmode="numeric" value="${S.monthly}" aria-label="Spending budget" aria-describedby="budErr"></label>
-  <p class="sal-n ${ek}" id="budErr">${et||(ui.budSet?'':'Suggested from your income and fixed costs, keeping a quarter for savings. ')+(cb.P<cb.len&&+S.monthly>0?`${inr(fb)} for the first ${cb.P} days, then ${inr(+S.monthly)} each month.`:'')}</p>
+  <div class="card srw">${row('Name',esc(S.name),'qn')}${row('You are',(WHO.find(w=>w[0]===S.who)||['',''])[1],'who')}${row(S.who==='student'?'Monthly money':'Monthly income',inr(S.income),'qi')}${row('Fixed costs',inr(fixedTotal())+' a month','qf')}${row('Resets',cycleName(),'qc')}${row('Spending budget',inr(S.monthly)+(cb.P<cb.len?` · ${inr(fb)} for the first ${cb.P} days`:''),'q1')}${row('Saving goal',S.goal?inr(S.goal):'None','qg')}${row('Paid with',S.apps.join(', '),'qa')}</div>
   <div class="sumc big2"><span><small>Your first period</small><b>${fmtD(today())} – ${fmtD(addDays(today(),cb.P-1))}</b></span><span><small>Today you can spend</small><b>${inr(fb/cb.P)}</b></span></div>
-  ${obNav('qs',+S.monthly>0&&ek!=='err','Start tracking')}</div>`; }
+  ${obNav('qs',true,'Start tracking')}</div>`; }
 
 /* ---------- home ---------- */
 function gauge(spent,limit){ const C=[130,118],R=100,a0=150,sw=240,pt=d=>{const r=d*Math.PI/180;return [C[0]+R*Math.cos(r),C[1]+R*Math.sin(r)];}; const arc=(f0,f1)=>{ const [x0,y0]=pt(a0+sw*f0),[x1,y1]=pt(a0+sw*f1); return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${sw*(f1-f0)>180?1:0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
@@ -1640,7 +1643,7 @@ let DL=false;
 const SHEETS={log:sheetLog,tx:sheetTx,bud:sheetBud,period:sheetPeriod,goal:sheetGoal,move:sheetMove,num:sheetNum,fixed:sheetFixed,apps:sheetApps,name:sheetName,who:sheetWho,inbox:sheetInbox,nudges:sheetNudges,moved:sheetMoved,privacy:sheetPrivacy,data:sheetData};
 function render(){
   const a=$('#app'); let h='';
-  const V={welcome:vWelcome,intro:vIntro,who:vWho,qn:vQn,qi:vQi,qf:vQf,qc:vQc,qg:vQg,qa:vQa,qs:vQs,review:vReview};
+  const V={welcome:vWelcome,intro:vIntro,who:vWho,qn:vQn,qi:vQi,qf:vQf,qc:vQc,q1:vQ1,qg:vQg,qa:vQa,qs:vQs,review:vReview};
   if(V[S.step]) h=V[S.step](); else h=ui.tab==='today'?vToday():ui.tab==='bd'?vBreak():ui.tab==='hist'?vHist():vProf();
   if(S.step==='home'&&ui.sheet&&SHEETS[ui.sheet]) h+=SHEETS[ui.sheet]();
   if(ui.sheet==='confirm') h+=sheetConfirm();
@@ -1672,7 +1675,7 @@ document.addEventListener('input',e=>{ const id=e.target.id;
   if(id&&id.startsWith('fx_')){ S.fixed[id.slice(3)]=num(e.target.value)||''; render(); }
   if(id&&id.startsWith('sfx_')){ ui.fx[id.slice(4)]=num(e.target.value)||''; setTxt('fxTot','Total '+inr(['rent','bills','subs'].reduce((a,k)=>a+(+ui.fx[k]||0),0))+' a month'); }
   if(id==='iPday'){ const n=Math.min(31,num(e.target.value)); if(ui.sheet==='period'){ if(n>=1) ui.cyc.day=n; } else if(n>=1){ S.cycle.day=n; ui.ssf=''; } if(n>=1) render(); }
-  if(id==='iBudS'){ S.monthly=num(e.target.value)||''; ui.budSet=S.monthly!==''; render(); }
+  if(id==='iBud'){ S.monthly=num(e.target.value)||''; render(); }
   if(id==='iSsf'){ ui.ssf=e.target.value===''?'':num(e.target.value); render(); }
   if(id==='iGoal0'){ S.goal=num(e.target.value)||0; S.goalAuto=false; render(); }
   if(id==='iNum'){ ui.numv=num(e.target.value)||''; const b=document.querySelector('[data-savenum]'); if(b) b.disabled=!(ui.numv>0); }
@@ -1703,7 +1706,7 @@ document.addEventListener('click',e=>{
   if(d.close && e.target===b){ ui.sheet=null; render(); return; }
   if(d.nfx){ S.notif=null; render(); return; }
   if(d.notif){ S.notif=null; S.unread=0; ui.tab='today'; ui.sheet='inbox'; render(); return; }
-  if(d.go){ if(d.go==='intro') ui.slide=0; if(d.go==='finish'){ finishSetup(); render(); return; } if(d.go==='qs') ui.fromSum=false; if(!OB.includes(d.go)||OB.indexOf(d.go)<OB.indexOf(S.step)) ui.fromSum=false; S.step=d.go; render(); return; }
+  if(d.go){ if(d.go==='intro') ui.slide=0; if(d.go==='finish'){ finishSetup(); render(); return; } if(d.go==='qs') ui.fromSum=false; if(!OB.includes(d.go)||OB.indexOf(d.go)<OB.indexOf(S.step)) ui.fromSum=false; if(d.go==='q1'&&S.monthly===''&&suggested()) S.monthly=suggested(); S.step=d.go; render(); return; }
   if(d.slide!==undefined){ ui.slide=+d.slide; render(); return; }
   if(d.who){ S.who=d.who; touch(); render(); return; }
   if(d.close2){ ui.sheet=null; render(); return; }
