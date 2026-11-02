@@ -1388,7 +1388,7 @@ const whoList=()=>`<div class="who">${WHO.map(([k,t,d])=>`<button class="who-o $
 const fixedTotal=()=>['rent','bills','subs'].reduce((a,k)=>a+(+S.fixed[k]||0),0);
 const afterFixed=()=>(+S.income||0)-fixedTotal();
 const r500=n=>Math.max(0,Math.round(n/500)*500);
-const suggested=()=>{ if(!(afterFixed()>0)) return 0; const c=S.cycle; return r500(afterFixed()*0.75*(c.type==='pay'?1:c.days/30.4)); };
+const suggested=()=>{ if(!(afterFixed()>0)) return 0; const c=S.cycle; return Math.floor(afterFixed()*(c.type==='pay'?1:c.days/30.4)/100)*100; };
 const dim=(y,m)=>new Date(y,m+1,0).getDate();
 const payOn=(y,m,N)=>{ const d=new Date(y,m,1); return new Date(d.getFullYear(),d.getMonth(),Math.min(N,dim(d.getFullYear(),d.getMonth()))); };
 function cycleFrom(from,c){ c=c||S.cycle; if(c.type!=='pay') return {P:c.days,len:c.days,prev:from,next:addDays(from,c.days)};
@@ -1430,14 +1430,13 @@ function budErr(){ const m=+S.monthly; if(S.monthly==='') return ['','']; const 
   if(m/cb.len<10) return ['err','That’s under ₹10 a day. Enter a larger amount.'];
   if(S.cycle.type==='pay'&&inc&&m>inc) return ['err',`That’s more than your income of ${inr(inc)}.`];
   if(ui.ssf!==''&&+ui.ssf>m) return ['err','You’ve already spent more than this budget. Raise the budget or check the amount spent.'];
-  if(S.cycle.type==='pay'&&inc&&m>afterFixed()) return ['warn',`That’s more than the ${inr(afterFixed())} left after fixed costs. You’d be dipping into savings.`];
+  if(S.cycle.type==='pay'&&inc&&m>afterFixed()) return ['warn',`That’s more than the ${inr(afterFixed())} left after fixed costs.`];
   return ['',''] }
 const ensureBud=()=>{ if(!ui.budSet) S.monthly=suggested()||S.monthly; };
-function vQg(){ ensureBud(); const g=S.goal, b=firstBudget(); const extra=S.cycle.type==='pay'&&+S.income?afterFixed()-(+S.monthly):0; return `<div class="view full ob">${dots('qg')}<h2>Set a saving goal</h2><p class="mut">Whatever you don’t spend each day goes into your saving buffer. How much would you like it to reach this period?</p>
+function vQg(){ ensureBud(); const g=S.goal, b=firstBudget(); return `<div class="view full ob">${dots('qg')}<h2>Set a saving goal</h2><p class="mut">Whatever you don’t spend each day goes into your saving buffer. Nothing is taken from your budget for this. Set how much you’d like your buffer to reach this period by spending less than your daily amount.</p>
   <label class="fld"><span>₹</span><input id="iGoal0" inputmode="numeric" placeholder="${r500(b*0.2)||1000}" value="${g||''}"></label>
   <div class="chips">${[[0.1,'10%'],[0.2,'20%'],[0.3,'30%']].map(([f,l])=>{const x=Math.max(100,Math.round(b*f/100)*100);return `<button class="chip ${+g===x?'on':''}" data-gl0="${x}">${l} · ${inr(x)}</button>`;}).join('')}</div>
-  ${+g>b?'<p class="sal-n err">A goal bigger than your budget can’t be reached by saving from it.</p>':''}
-  ${extra>0?`<div class="card tipc"><b>${inr(extra)} a month isn’t in your budget or fixed costs</b><p class="mut">Move it to savings on payday so it doesn’t get spent.</p></div>`:''}
+  ${+g>b?'<p class="sal-n err">A goal bigger than your budget can’t be reached from what you don’t spend.</p>':''}
   ${obNav('qg',!(+g>b),+g?'':'Skip for now')}</div>`; }
 function vQa(){ return `<div class="view full ob">${dots('qa')}<h2>How do you usually pay?</h2><p class="mut">Pick all that apply. They show up when you log a payment, first one selected.</p>
   <div class="chips">${APPS.map(x=>`<button class="chip chip-lg ${S.apps.includes(x)?'on':''}" data-papp="${x}" aria-label="${x}">${appMark(x)}${x==='Paytm'?'':x}</button>`).join('')}</div>
@@ -1446,7 +1445,7 @@ function vQs(){ ensureBud(); const cb=cycleFrom(today()), fb=firstBudget(), [ek,
   return `<div class="view full ob">${dots('qs')}<h2>Check your details</h2><p class="mut">You can change any of these later in Settings.</p>
   <div class="card srw">${row('Name',esc(S.name),'qn')}${row('You are',(WHO.find(w=>w[0]===S.who)||['',''])[1],'who')}${row(S.who==='student'?'Monthly money':'Monthly income',inr(S.income),'qi')}${row('Fixed costs',inr(fixedTotal())+' a month','qf')}${row('Resets',cycleName(),'qc')}${row('Saving goal',S.goal?inr(S.goal):'None','qg')}${row('Paid with',S.apps.join(', '),'qa')}</div>
   <span class="lbl">Spending budget ${S.cycle.type==='pay'?'each month':'each period'}</span><label class="fx-i wide"><i>₹</i><input id="iBudS" inputmode="numeric" value="${S.monthly}" aria-label="Spending budget" aria-describedby="budErr"></label>
-  <p class="sal-n ${ek}" id="budErr">${et||(ui.budSet?'':'Suggested from your income and fixed costs, keeping a quarter for savings. ')+(cb.P<cb.len&&+S.monthly>0?`${inr(fb)} for the first ${cb.P} days, then ${inr(+S.monthly)} each month.`:'')}</p>
+  <p class="sal-n ${ek}" id="budErr">${et||(ui.budSet?'':'Everything left after fixed costs. Your savings come from what you don’t spend each day. ')+(cb.P<cb.len&&+S.monthly>0?`${inr(fb)} for the first ${cb.P} days, then ${inr(+S.monthly)} each month.`:'')}</p>
   <div class="sumc big2"><span><small>Your first period</small><b>${fmtD(today())} – ${fmtD(addDays(today(),cb.P-1))}</b></span><span><small>Today you can spend</small><b>${inr(fb/cb.P)}</b></span></div>
   ${obNav('qs',+S.monthly>0&&ek!=='err','Start tracking')}</div>`; }
 
@@ -1775,7 +1774,6 @@ render();
 if(!(window.claude&&window.claude.use)){ DL=true; try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist(); }catch(e){} }
 setTimeout(()=>{ connect(); (async()=>{ try{ if(window.claude&&window.claude.use){ DL=!!(await window.claude.use('downloads')); } }catch(e){} })(); },0);
 })();
-
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
 </body>
